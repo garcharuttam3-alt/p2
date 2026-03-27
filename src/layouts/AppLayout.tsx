@@ -18,7 +18,7 @@ const getSidebarItems = (role: UserRole): NavItem[] => {
         { label: "Analytics", path: "/admin/analytics", icon: "solar:chart-2-bold-duotone", section: "Overview" },
         { label: "Users", path: "/admin/users", icon: "solar:users-group-rounded-bold-duotone", section: "Manage" },
         { label: "Providers", path: "/admin/providers", icon: "solar:case-round-bold-duotone", section: "Manage" },
-        { label: "Categories", path: "/admin/categories", icon: "solar:widget-bold-duotone", section: "Manage" },
+       
         { label: "Services", path: "/admin/services", icon: "solar:layers-bold-duotone", section: "Manage" },
         { label: "Coupons", path: "/admin/coupons", icon: "solar:ticket-sale-bold-duotone", section: "Manage" },
         { label: "Bookings", path: "/admin/bookings", icon: "solar:calendar-bold-duotone", section: "Finance" },

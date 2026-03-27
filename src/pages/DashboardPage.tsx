@@ -484,6 +484,8 @@ const AdminDashboard = () => {
   );
 };
 
+
+
 /* ============ USER ============ */
 const UserDashboard = () => {
   const [bookings, setBookings] = useState<any[]>([]);
@@ -553,7 +555,163 @@ const UserDashboard = () => {
     </div>
   );
 };
+// ==============VM DASHBOARD ==============
 
+const VerificationManagerDashboard = ({ verifyStats }: { verifyStats: any }) => {
+  const analytics = verifyStats?.analytics || verifyStats || {};
+
+  const overview = analytics.overview || {};
+  const growth = analytics.growth || {};
+  const trends = analytics.trends?.daily || [];
+  const recent = analytics.recentActivity || [];
+
+  const total = overview.total || 1;
+
+  const trendData = trends.map((t: any) => ({
+    date: t._id,
+    count: t.count,
+  }));
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
+          Verification Dashboard
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Real-time verification insights
+        </p>
+      </div>
+
+      {/* 🔹 Overview Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="Total" value={overview.total || 0} icon="solar:layers-bold" />
+        <StatCard label="Pending" value={overview.pending || 0} icon="solar:clock-circle-bold" color="text-warning" bg="bg-warning/10" />
+        <StatCard label="Approved" value={overview.approved || 0} icon="solar:check-circle-bold" color="text-success" bg="bg-success/10" />
+        <StatCard label="Rejected" value={overview.rejected || 0} icon="solar:close-circle-bold" color="text-destructive" bg="bg-destructive/10" />
+      </div>
+
+      {/* 🔹 Growth Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard label="Today" value={growth.today || 0} icon="solar:calendar-bold" />
+        <StatCard label="Last 7 Days" value={growth.last7Days || 0} icon="solar:chart-2-bold" />
+        <StatCard label="Last 30 Days" value={growth.last30Days || 0} icon="solar:graph-up-bold" />
+      </div>
+
+      {/* 🔹 Approval Rate */}
+      <div className="rounded-xl bg-card border border-border p-5">
+        <SectionTitle>Approval Ratio</SectionTitle>
+
+        <div className="space-y-4 mt-4">
+          {[
+            {
+              name: "Approved",
+              value: overview.approved || 0,
+              percent: overview.approvalRate || "0%",
+              color: COLORS.green,
+            },
+            {
+              name: "Rejected",
+              value: overview.rejected || 0,
+              percent: overview.rejectionRate || "0%",
+              color: COLORS.pink,
+            },
+          ].map((v) => (
+            <div key={v.name}>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-muted-foreground">{v.name}</span>
+                <span className="font-mono font-bold">
+                  {v.value} ({v.percent})
+                </span>
+              </div>
+
+              <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: v.percent, background: v.color }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 🔹 Daily Trend */}
+      <div className="rounded-xl bg-card border border-border p-5">
+        <SectionTitle>Daily Verification Trend</SectionTitle>
+
+        {trendData.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-10">
+            No trend data
+          </p>
+        ) : (
+          <ResponsiveContainer width="100%" height={200} className="mt-4">
+            <AreaChart data={trendData}>
+              <defs>
+                <linearGradient id="gradV" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={COLORS.purple} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={COLORS.purple} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(230 20% 88%)" />
+              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Area
+                type="monotone"
+                dataKey="count"
+                stroke={COLORS.purple}
+                fill="url(#gradV)"
+                strokeWidth={2.5}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* 🔹 Recent Activity */}
+      <div className="rounded-xl bg-card border border-border overflow-hidden">
+        <div className="px-5 py-3 border-b border-border">
+          <SectionTitle>Recent Activity</SectionTitle>
+        </div>
+
+        <div className="divide-y divide-border">
+          {recent.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">
+              No recent activity
+            </p>
+          ) : (
+            recent.map((r: any) => (
+              <div key={r._id} className="flex items-center justify-between px-5 py-3">
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-foreground">
+                    Provider ID: {r._id.slice(-6)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(r.createdAt).toLocaleString()}
+                  </span>
+                </div>
+
+                <span
+                  className={`text-[10px] font-semibold px-2 py-1 rounded-md ${
+                    r.verificationStatus === "approved"
+                      ? "bg-success/10 text-success"
+                      : r.verificationStatus === "rejected"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-warning/10 text-warning"
+                  }`}
+                >
+                  {r.verificationStatus}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 /* ============ PROVIDER ============ */
 const ProviderDashboard = () => {
   const [services, setServices] = useState<any[]>([]);
@@ -634,8 +792,26 @@ const ProviderDashboard = () => {
 /* ============ MAIN ============ */
 const DashboardPage = () => {
   const { user } = useAuthStore();
+  const [verifyStats, setVerifyStats] = useState<any>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const verifyRes = await verificationApi.analytics().catch(() => ({ data: {} }));
+        setVerifyStats(verifyRes.data?.analytics || verifyRes.data || {});
+      } catch {
+        setVerifyStats({});
+      }
+    };
+    if (user?.role === "VerificationManager") {
+      load();
+    }
+  }, [user?.role]);
+
   if (user?.role === "Admin") return <AdminDashboard />;
   if (user?.role === "ServiceProvider") return <ProviderDashboard />;
+  if (user?.role === "VerificationManager")
+    return <VerificationManagerDashboard verifyStats={verifyStats} />;
   return <UserDashboard />;
 };
 

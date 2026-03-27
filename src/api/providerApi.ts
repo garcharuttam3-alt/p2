@@ -56,5 +56,5 @@ export const providerApi = {
   uploadDocuments: (data: { documents: ProviderDocument[] }) =>
   api.post("/provider-documents/upload", data),
   
-  getMyProviderProfile: () => api.get("/providers/me"),
+  getMyProviderProfile: () => api.get("/users/profile"),
 };  
