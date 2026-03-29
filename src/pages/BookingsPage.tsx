@@ -104,100 +104,111 @@ const BookingsPage = () => {
       </div>
     );
   }
+return (
+  <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
 
-  return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    {/* HEADER */}
+    <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-bold">My Bookings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Bookings
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Manage your bookings & payments
+          Overview of all your service bookings
         </p>
       </div>
+    </div>
 
-      {bookings.length === 0 && (
-        <div className="text-center py-20 border rounded-lg">
-          No bookings yet
-        </div>
-      )}
+    {/* EMPTY */}
+    {bookings.length === 0 && (
+      <div className="border rounded-xl py-20 text-center text-muted-foreground">
+        No bookings available
+      </div>
+    )}
 
-      <div className="space-y-4">
-        {bookings.map((b) => (
+    {/* TABLE */}
+    <div className="border rounded-xl overflow-hidden bg-card">
+
+      {/* TABLE HEADER */}
+      <div className="grid grid-cols-6 text-xs font-medium text-muted-foreground border-b px-4 py-3 bg-muted/40">
+        <span>ID</span>
+        <span>Provider</span>
+        <span>Status</span>
+        <span>Payment</span>
+        <span>Price</span>
+        <span className="text-right">Action</span>
+      </div>
+
+      {/* ROWS */}
+      {bookings.map((b) => {
+
+        const isPaid = b.paymentStatus === "paid";
+
+        return (
           <div
             key={b._id}
-            className="p-5 border rounded-xl bg-card shadow-sm hover:shadow-md transition space-y-4"
+            className="grid grid-cols-6 items-center px-4 py-3 text-sm border-b last:border-none hover:bg-muted/40 transition"
           >
-            {/* TOP */}
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="font-semibold text-base">
-                  Booking #{shortId(b._id)}
-                </h2>
 
-                <p className="text-xs text-muted-foreground">
-                  👤 Provider ID:{" "}
-                  <span className="font-mono">
-                    {shortId(b.provider)}
-                  </span>
-                </p>
+            {/* ID */}
+            <span className="font-mono text-xs">
+              #{shortId(b._id)}
+            </span>
 
-                <p className="text-xs text-muted-foreground">
-                  🛠 Service ID:{" "}
-                  <span className="font-mono">
-                    {shortId(b.service)}
-                  </span>
-                </p>
-              </div>
+            {/* PROVIDER */}
+            <span className="text-xs text-muted-foreground font-mono">
+              {shortId(b.provider)}
+            </span>
 
-              <span className={`text-xs px-2 py-1 rounded ${statusColor[b.status]}`}>
-                {b.status}
+            {/* STATUS */}
+            <span>
+              <span className={`px-2 py-1 rounded-md text-[11px] font-medium ${statusColor[b.status]}`}>
+                {b.status.replace("_", " ")}
               </span>
-            </div>
+            </span>
 
-            {/* INFO */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-              <div>
-                <p className="text-muted-foreground text-xs">Price</p>
-                <p className="font-semibold">₹{b.priceAtBooking}</p>
-              </div>
+            {/* PAYMENT */}
+            <span className={`text-xs font-medium ${
+              isPaid ? "text-green-600" : "text-yellow-600"
+            }`}>
+              {b.paymentStatus}
+            </span>
 
-              <div>
-                <p className="text-muted-foreground text-xs">Payment</p>
-                <p className={b.paymentStatus === "paid" ? "text-green-600" : "text-yellow-600"}>
-                  {b.paymentStatus}
-                </p>
-              </div>
+            {/* PRICE */}
+            <span className="font-semibold">
+              ₹{b.priceAtBooking}
+            </span>
 
-              <div>
-                <p className="text-muted-foreground text-xs">OTP</p>
-                <p className="font-mono">
-                  {b.paymentStatus === "paid" ? b.serviceOtp : "—"}
-                </p>
-              </div>
-            </div>
+            {/* ACTION */}
+            <div className="flex justify-end gap-2">
 
-            {/* ACTIONS */}
-            <div className="flex gap-2">
-              {b.status === "accepted" && b.paymentStatus === "pending" && (
+              {b.status === "accepted" && !isPaid && (
                 <button
                   onClick={() => handlePayment(b._id)}
                   disabled={payingId === b._id}
-                  className="px-3 py-1.5 bg-primary text-white rounded"
+                  className="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-white hover:opacity-90 transition"
                 >
                   {payingId === b._id ? "Processing..." : "Pay"}
                 </button>
               )}
 
               {canChat(b.status, b.paymentStatus) && (
-                <Link to={`/chat?booking=${b._id}`} className="px-3 py-1.5 border rounded">
+                <Link
+                  to={`/chat?booking=${b._id}`}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md border hover:bg-muted transition"
+                >
                   Chat
                 </Link>
               )}
+
             </div>
+
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
-  );
+  </div>
+);
 };
 
 export default BookingsPage;
