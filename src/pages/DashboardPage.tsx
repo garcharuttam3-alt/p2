@@ -11,6 +11,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, CartesianGrid, XAxis, YAxis,
   AreaChart, Area, RadialBarChart, RadialBar, Legend,
+  LineChart, Line, 
 } from "recharts";
 
 const COLORS = {
@@ -713,6 +714,7 @@ const VerificationManagerDashboard = ({ verifyStats }: { verifyStats: any }) => 
   );
 };
 /* ============ PROVIDER ============ */
+
 const ProviderDashboard = () => {
   const [services, setServices] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
@@ -727,6 +729,7 @@ const ProviderDashboard = () => {
           bookingApi.getProviderBookings().catch(() => ({ data: [] })),
           providerApi.getMyProviderProfile().catch(() => ({ data: {} })),
         ]);
+
         setServices(s.data.services || s.data || []);
         setBookings(b.data.bookings || b.data || []);
         setProfile(p.data.profile || p.data || null);
@@ -738,52 +741,115 @@ const ProviderDashboard = () => {
 
   if (loading) return <Spinner />;
 
+  /* ================= Analytics ================= */
+  const completed = bookings.filter(b => b.status === "completed").length;
+  const pending = bookings.filter(b => b.status === "pending").length;
+
+  const completionRate = bookings.length
+    ? ((completed / bookings.length) * 100).toFixed(0)
+    : 0;
+
+  /* ================= Chart Data ================= */
+  const chartData = bookings.slice(-7).map((b, i) => ({
+    name: `Day ${i + 1}`,
+    bookings: 1,
+  }));
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+      
+      {/* HEADER */}
       <div>
-        <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Provider Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Manage your business</p>
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Services" value={services.length} icon="solar:layers-bold" color="text-primary" bg="bg-primary/10" />
-        <StatCard label="Bookings" value={bookings.length} icon="solar:clipboard-check-bold" color="text-accent" bg="bg-accent/10" />
-        <StatCard label="Pending" value={bookings.filter(b => b.status === "pending").length} icon="solar:clock-circle-bold" color="text-warning" bg="bg-warning/10" />
-        <StatCard label="Balance" value={profile?.walletBalance != null ? `₹${profile.walletBalance}` : "₹0"} icon="solar:wallet-2-bold" color="text-success" bg="bg-success/10" />
+        <h1 className="text-3xl font-extrabold tracking-tight">
+          Welcome back 👋
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          Here's what's happening with your business today
+        </p>
       </div>
 
-      <div className="rounded-xl bg-card border border-border overflow-hidden">
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <SectionTitle>Recent Bookings</SectionTitle>
-          <Link to="/provider/bookings" className="text-[10px] text-primary font-medium hover:underline">View all →</Link>
+      {/* ================= STATS ================= */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+
+        <StatCard label="Services" value={services.length} />
+        <StatCard label="Bookings" value={bookings.length} />
+        <StatCard label="Completed" value={completed} />
+        <StatCard label="Pending" value={pending} />
+        <StatCard label="Completion %" value={`${completionRate}%`} />
+
+      </div>
+
+      {/* ================= CHART ================= */}
+      <div className="bg-card border rounded-2xl p-5 shadow-sm">
+        <h3 className="font-semibold mb-4">Bookings Trend</h3>
+
+        <ResponsiveContainer width="100%" height={250}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Line type="monotone" dataKey="bookings" strokeWidth={2} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ================= WALLET CARD ================= */}
+      <div className="bg-gradient-to-r from-primary/20 to-accent/20 border rounded-2xl p-5 flex justify-between items-center">
+        <div>
+          <p className="text-sm text-muted-foreground">Available Balance</p>
+          <h2 className="text-2xl font-bold">
+            ₹{profile?.walletBalance || 0}
+          </h2>
         </div>
-        <table className="w-full text-xs">
+
+        <Link
+          to="/provider/withdraw"
+          className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium"
+        >
+          Withdraw
+        </Link>
+      </div>
+
+      {/* ================= RECENT BOOKINGS ================= */}
+      <div className="rounded-2xl bg-card border overflow-hidden">
+        <div className="px-5 py-4 border-b flex justify-between">
+          <h3 className="font-semibold">Recent Bookings</h3>
+          <Link to="/provider/bookings" className="text-sm text-primary">
+            View all →
+          </Link>
+        </div>
+
+        <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border">
-              <th className="px-4 py-2 text-left text-[10px] font-medium text-muted-foreground">Service</th>
-              <th className="px-4 py-2 text-left text-[10px] font-medium text-muted-foreground">Customer</th>
-              <th className="px-4 py-2 text-left text-[10px] font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-2 text-left text-[10px] font-medium text-muted-foreground">Date</th>
+            <tr className="border-b">
+              <th className="px-4 py-3 text-left">Service</th>
+              <th className="px-4 py-3 text-left">Customer</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Date</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
-            {bookings.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No bookings yet</td></tr>
-            ) : bookings.slice(0, 5).map((b: any, i: number) => (
-              <tr key={i} className="hover:bg-primary/5 transition-colors">
-                <td className="px-4 py-2.5 font-medium text-foreground">{b.service?.title || "Booking"}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{b.user?.name || "—"}</td>
-                <td className="px-4 py-2.5">{statusBadge(b.status)}</td>
-                <td className="px-4 py-2.5 text-muted-foreground font-mono text-[10px]">{b.createdAt ? new Date(b.createdAt).toLocaleDateString() : "—"}</td>
+
+          <tbody>
+            {bookings.slice(0, 5).map((b: any, i: number) => (
+              <tr key={i} className="hover:bg-muted/50">
+                <td className="px-4 py-3">{b.service?.title}</td>
+                <td className="px-4 py-3">{b.user?.name}</td>
+                <td className="px-4 py-3">{statusBadge(b.status)}</td>
+                <td className="px-4 py-3">
+                  {new Date(b.createdAt).toLocaleDateString()}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <QuickLink label="My Services" to="/provider/services" icon="solar:layers-bold" desc="Manage services" color="text-primary" bg="bg-primary/10" />
-        <QuickLink label="Bookings" to="/provider/bookings" icon="solar:clipboard-check-bold" desc="View bookings" color="text-accent" bg="bg-accent/10" />
-        <QuickLink label="Withdraw" to="/provider/withdraw" icon="solar:wallet-2-bold" desc="Request payout" color="text-success" bg="bg-success/10" />
+      {/* ================= QUICK ACTIONS ================= */}
+      <div className="grid sm:grid-cols-3 gap-4">
+        <QuickLink to="/provider/services" label="Manage Services" />
+        <QuickLink to="/provider/bookings" label="View Bookings" />
+        <QuickLink to="/provider/withdraw" label="Withdraw Money" />
       </div>
     </div>
   );

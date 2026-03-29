@@ -1,172 +1,203 @@
-import { useEffect, useState } from "react";
-import { useAuthStore } from "@/stores/authStore";
-import { userApi } from "@/api/userApi";
-import { providerApi } from "@/api/providerApi";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { Icon } from "@iconify/react";
+  import { useEffect, useState } from "react";
+  import { useAuthStore } from "@/stores/authStore";
+  import { userApi } from "@/api/userApi";
+  import { providerApi } from "@/api/providerApi";
+  import { Button } from "@/components/ui/button";
+  import { Input } from "@/components/ui/input";
+  import { Label } from "@/components/ui/label";
+  import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+  import { useToast } from "@/hooks/use-toast";
+  import { Icon } from "@iconify/react";
 
-type ProviderStatus = "none" | "pending" | "rejected" | "approved";
+  type ProviderStatus = "none" | "pending" | "rejected" | "approved";
 
-const ProfilePage = () => {
-  const { user, setUser } = useAuthStore();
-  const { toast } = useToast();
+  const ProfilePage = () => {
+    const { user, setUser } = useAuthStore();
+    const { toast } = useToast();
 
-  const [loading, setLoading] = useState(false);
-  const [openApply, setOpenApply] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [openApply, setOpenApply] = useState(false);
 
-  const [providerStatus, setProviderStatus] = useState<ProviderStatus>("none");
-  const [documentStatus, setDocumentStatus] = useState<"pending" | "approved" | "rejected" | "none">("none");
+    const [providerStatus, setProviderStatus] = useState<ProviderStatus>("none");
+    const [documentStatus, setDocumentStatus] = useState<"pending" | "approved" | "rejected" | "none">("none");
 
-  const [name, setName] = useState(user?.name || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [address, setAddress] = useState(user?.address || "");
+    const [name, setName] = useState(user?.name || "");
+    const [phone, setPhone] = useState(user?.phone || "");
+    const [address, setAddress] = useState(user?.address || "");
 
-  const [applyData, setApplyData] = useState({
-    serviceType: "",
-    address: "",
-    city: "",
-    pincode: "",
-  });
+    const [applyData, setApplyData] = useState({
+      serviceType: "",
+      address: "",
+      city: "",
+      pincode: "",
+    });
 
-  // 🔍 Load status
-  const loadProviderStatus = async () => {
-    try {
-      const res = await providerApi.getMyProviderProfile();
-      if (!res.data.success) return;
+    // 🔍 Load status
+    const loadProviderStatus = async () => {
+      try {
+        const res = await providerApi.getMyProviderProfile();
+        if (!res.data.success) return;
 
-      const profile = res.data.profile;
+        const profile = res.data.profile;
 
-      if (!profile) {
-        setProviderStatus("none");
-        setDocumentStatus("none");
-        return;
+        if (!profile) {
+          setProviderStatus("none");
+          setDocumentStatus("none");
+          return;
+        }
+
+        setProviderStatus(profile.providerStatus || "pending");
+        setDocumentStatus(profile.documentStatus || "pending");
+      } catch {}
+    };
+
+    useEffect(() => {
+      loadProviderStatus();
+    }, []);
+
+    // 🧠 Smart UI logic
+    const canApply = providerStatus === "none" || providerStatus === "rejected";
+    const isPending = providerStatus === "pending";
+
+    const getStatusColor = () => {
+      if (providerStatus === "approved") return "bg-green-100 text-green-600";
+      if (providerStatus === "rejected") return "bg-red-100 text-red-600";
+      return "bg-yellow-100 text-yellow-600";
+    };
+
+    const getStatusLabel = () => {
+      if (providerStatus === "none") return "Not Applied";
+      if (providerStatus === "pending") return "Under Review";
+      if (providerStatus === "rejected") return "Rejected";
+      return "Approved";
+    };
+
+    // ✏ Update profile
+    const handleUpdate = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+
+      try {
+        const res = await userApi.updateProfile({ name, phone, address });
+        setUser(res.data.user || { ...user!, name, phone, address });
+        toast({ title: "Profile updated" });
+      } catch {
+        toast({ title: "Update failed", variant: "destructive" });
       }
 
-      setProviderStatus(profile.providerStatus || "pending");
-      setDocumentStatus(profile.documentStatus || "pending");
-    } catch {}
-  };
+      setLoading(false);
+    };
 
-  useEffect(() => {
-    loadProviderStatus();
-  }, []);
+    // 🚀 Apply
+    const handleApply = async (e: React.FormEvent) => {
+      e.preventDefault();
 
-  // 🧠 Smart UI logic
-  const canApply = providerStatus === "none" || providerStatus === "rejected";
-  const isPending = providerStatus === "pending";
+      try {
+        await providerApi.apply(applyData);
+        setProviderStatus("pending");
+        setDocumentStatus("pending");
+        toast({ title: "Application submitted" });
+        setOpenApply(false);
+      } catch {
+        toast({ title: "Application failed", variant: "destructive" });
+      }
+    };
 
-  const getStatusColor = () => {
-    if (providerStatus === "approved") return "bg-green-100 text-green-600";
-    if (providerStatus === "rejected") return "bg-red-100 text-red-600";
-    return "bg-yellow-100 text-yellow-600";
-  };
+return (
+  <div className="min-h-screen bg-background px-4 py-8">
 
-  const getStatusLabel = () => {
-    if (providerStatus === "none") return "Not Applied";
-    if (providerStatus === "pending") return "Under Review";
-    if (providerStatus === "rejected") return "Rejected";
-    return "Approved";
-  };
+    <div className="max-w-5xl mx-auto space-y-6">
 
-  // ✏ Update profile
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          My Profile
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Manage your account & provider access
+        </p>
+      </div>
 
-    try {
-      const res = await userApi.updateProfile({ name, phone, address });
-      setUser(res.data.user || { ...user!, name, phone, address });
-      toast({ title: "Profile updated" });
-    } catch {
-      toast({ title: "Update failed", variant: "destructive" });
-    }
+      {/* PROFILE CARD */}
+      <div className="relative rounded-2xl p-[1px] bg-gradient-to-r 
+        from-indigo-500 via-purple-500 to-pink-500">
 
-    setLoading(false);
-  };
+        <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border p-5">
 
-  // 🚀 Apply
-  const handleApply = async (e: React.FormEvent) => {
-    e.preventDefault();
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-semibold text-foreground">
+              Profile Overview
+            </h3>
 
-    try {
-      await providerApi.apply(applyData);
-      setProviderStatus("pending");
-      setDocumentStatus("pending");
-      toast({ title: "Application submitted" });
-      setOpenApply(false);
-    } catch {
-      toast({ title: "Application failed", variant: "destructive" });
-    }
-  };
+            {canApply && (
+              <button
+                onClick={() => setOpenApply(true)}
+                className="px-4 py-2 text-xs rounded-lg 
+                bg-gradient-to-r from-indigo-500 to-purple-500 
+                text-white shadow-md hover:opacity-90 transition"
+              >
+                Become Provider
+              </button>
+            )}
+          </div>
 
-  return (
-    <div className="max-w-3xl mx-auto space-y-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
 
-      {/* Profile Card */}
-      <div className="rounded-xl bg-card border p-4 shadow-sm">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-semibold">Profile Information</h3>
+            {[
+              { label: "Name", value: user?.name },
+              { label: "Email", value: user?.email },
+              { label: "Phone", value: user?.phone || "—" },
+              { label: "Address", value: user?.address || "—" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl p-3 bg-muted/40 dark:bg-muted/20 border border-border"
+              >
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="font-medium text-foreground">{item.value}</p>
+              </div>
+            ))}
 
-          {/* 🔥 Smart Button */}
-          {user?.role === "User" && (
-            <>
-              {canApply && (
-                <Button
-                  onClick={() => setOpenApply(true)}
-                  size="sm"
-                  variant="outline"
-                  className="text-xs h-8"
-                >
-                  <Icon icon="solar:case-round-bold-duotone" className="h-3 w-3 mr-1" />
-                  {providerStatus === "rejected" ? "Re-Apply" : "Become Provider"}
-                </Button>
-              )}
-
-              {isPending && (
-                <Button size="sm" disabled className="text-xs h-8">
-                  ⏳ Under Review
-                </Button>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <p><strong>Name:</strong> {user?.name}</p>
-          <p><strong>Email:</strong> {user?.email}</p>
-          <p><strong>Phone:</strong> {user?.phone || "—"}</p>
-          <p><strong>Address:</strong> {user?.address || "—"}</p>
+          </div>
         </div>
       </div>
 
-      {/* Edit Profile */}
-      <form onSubmit={handleUpdate} className="rounded-xl bg-card border p-4 space-y-3 shadow-sm">
-        <h3 className="text-sm font-semibold">Edit Profile</h3>
+      {/* EDIT PROFILE */}
+      <div className="rounded-2xl bg-card border border-border p-5 space-y-4">
 
-        <div className="grid grid-cols-2 gap-3">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+        <h3 className="text-sm font-semibold text-foreground">
+          Edit Profile
+        </h3>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
           <Input value={user?.email || ""} disabled />
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" />
-          <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Address" />
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Input value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
 
-        <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : "Save Changes"}
-        </Button>
-      </form>
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
+          >
+            {loading ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      </div>
 
-      {/* Provider Status */}
+      {/* STATUS */}
       {providerStatus !== "none" && (
-        <div className="rounded-xl bg-card border p-4 shadow-sm space-y-3">
-          <h3 className="text-sm font-semibold">Provider Status</h3>
+        <div className="rounded-2xl bg-card border border-border p-5 space-y-4">
+
+          <h3 className="text-sm font-semibold text-foreground">
+            Provider Status
+          </h3>
 
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground">Verification</span>
-            <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor()}`}>
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor()}`}>
               {getStatusLabel()}
             </span>
           </div>
@@ -175,7 +206,7 @@ const ProfilePage = () => {
             <span className="text-xs text-muted-foreground">Documents</span>
 
             <div className="flex items-center gap-2">
-              <span className="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-600">
+              <span className="px-3 py-1 rounded-full text-xs bg-yellow-500/10 text-yellow-400">
                 {documentStatus}
               </span>
 
@@ -188,67 +219,18 @@ const ProfilePage = () => {
                     (window.location.href = "/provider/upload-documents")
                   }
                 >
-                  Upload Docs
+                  Upload
                 </Button>
               )}
             </div>
           </div>
+
         </div>
       )}
 
-      {/* Apply Modal */}
-      <Dialog open={openApply} onOpenChange={setOpenApply}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Apply as Service Provider</DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleApply} className="space-y-3">
-            <Input
-  placeholder="Service Type"
-  value={applyData.serviceType}
-  onChange={(e) =>
-    setApplyData({ ...applyData, serviceType: e.target.value })
-  }
-  required
-/>
-
-<Input
-  placeholder="Address"
-  value={applyData.address}
-  onChange={(e) =>
-    setApplyData({ ...applyData, address: e.target.value })
-  }
-  required
-/>
-
-<Input
-  placeholder="City"
-  value={applyData.city}
-  onChange={(e) =>
-    setApplyData({ ...applyData, city: e.target.value })
-  }
-  required
-/>
-
-<Input
-  placeholder="Pincode"
-  value={applyData.pincode}
-  onChange={(e) =>
-    setApplyData({ ...applyData, pincode: e.target.value })
-  }
-  required
-/>
-
-            <Button className="w-full">
-              Submit Application
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
     </div>
-  );
-};
+  </div>
+);
+  };
 
-export default ProfilePage;
+  export default ProfilePage;
